@@ -321,6 +321,7 @@ def continuous_voice_listener():
 threading.Thread(target=continuous_voice_listener, daemon=True).start()
 
 try:
+    verification_status = ""
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -403,19 +404,29 @@ try:
             print("[INFO] No face detected for extended time - system reset")
 
         # === Handle Unknown Person Detection and Verification ===
+        # === Handle Unknown Person Detection and Verification ===
         if last_detections:
             unknown_person_detected = any(d['name'] == "Unknown Face" for d in last_detections)
 
             if unknown_person_detected:
                 verification_status = handle_unknown_person_verification()
 
-                if verification_status == "access_denied":
-                    # Optional: Add additional security measures here
-                    # For example: save screenshot, send alert, etc.
-                    pass
-
+            else:
+                # A known face detected — reset verification if needed
+                check_for_known_person()
         else:
+            # No detections — face has moved away
+            if verification_in_progress:
+                print("[INFO] Face disappeared during verification — resetting system")
+                reset_verification_system()
             unknown_person_detected = False
+
+            if 'verification_status' in locals() and verification_status == "access_denied":
+                # Optional: Add additional security measures here
+                pass
+
+        # else:
+        #     unknown_person_detected = False
 
         # === Voice/Mic Display Feedback ===
         if unknown_person_detected or verification_in_progress:
